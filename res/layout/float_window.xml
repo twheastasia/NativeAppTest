@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" >
+
+    <TextView
+        android:id="@+id/cpuTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentTop="true"
+        android:textColor="#00FF00"
+        android:text="@string/cpu_info" />
+
+    <TextView
+        android:id="@+id/memoryTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true"
+        android:layout_below="@+id/cpuTextView"
+        android:textColor="#00FF00"
+        android:text="@string/mem_info" />
+
+    <TextView
+        android:id="@+id/networkTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true"
+        android:layout_below="@+id/memoryTextView"
+        android:textColor="#00FF00"
+        android:text="@string/network_info" />
+
+    <TextView
+        android:id="@+id/batteryTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true"
+        android:layout_below="@+id/networkTextView"
+        android:textColor="#00FF00"
+        android:text="@string/battery_info" />
+
+    <Button
+        android:id="@+id/startOrStopBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true"
+        android:layout_below="@+id/batteryTextView"
+        android:text="@string/start_or_stop_btn" />
+
+</RelativeLayout>

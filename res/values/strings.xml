@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">NativeAppTest</string>
+    <string name="action_settings">Settings</string>
+    <string name="title_section1">Native App</string>
+    <string name="title_section2">Test Items</string>
+    <string name="title_section3">Histroy Results</string>
+	<string name="title_section4">Settings</string>
+	<string name="under_test_app_name">被测App</string>
+	<string name="all_apps_list">全部应用</string>
+	<string name="test_items">items</string>
+	<string name="start_test">开始测试！</string>
+	<string name="stop_test">停止测试！</string>
+	<string name="cpu_info">cpu: 70%</string>
+	<string name="mem_info">memory: 20m</string>
+	<string name="network_info">net: 10K/s</string>
+	<string name="battery_info">battery: 10J</string>
+	<string name="start_or_stop_btn">start</string>
+</resources>
