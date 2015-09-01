@@ -1,5 +1,8 @@
 package com.twh.nativeapptest;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -7,10 +10,17 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 
+import org.apache.http.util.EncodingUtils;
+import org.apache.http.util.EntityUtils;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import com.twh.nativeapptest.MainActivity.MyCheckBoxAdapter.ViewHolder;
 
+import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageInfo;
@@ -25,6 +35,7 @@ import android.support.v4.app.NavUtils;
 import android.support.v4.view.ViewPager;
 import android.view.LayoutInflater;
 import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
@@ -32,6 +43,7 @@ import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ListAdapter;
 import android.widget.ListView;
@@ -39,6 +51,7 @@ import android.widget.SimpleAdapter;
 import android.widget.TextView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.SimpleAdapter.ViewBinder;
+import android.widget.Toast;
 
 public class MainActivity extends FragmentActivity {
 	
@@ -60,6 +73,9 @@ public class MainActivity extends FragmentActivity {
 	
 	//app array
 	public String[] TEST_ITEMS = {"CPU", "内存", "流量", "电量"};
+	public String CONFIG_FILE_PATH = "/data/data/com.twh.nativeapptest/files/config.json";
+	public static String POST_URL = "http://192.168.199.180:3001/livedata";
+	public String CONFIG_NAME = "config.json";
 	public ArrayList<HashMap<String, Object>> appArray = null;
     public ArrayList<HashMap<String,Object>> testItemsArray = null;
     public HashMap<Integer, Boolean> isSelected = null;
@@ -68,6 +84,9 @@ public class MainActivity extends FragmentActivity {
     public Button startBtn = null;
     public Intent serviceIntent = null;
     public boolean isServiceOn = false; 
+    public static String postUrl = "";
+    public boolean hasConfigFile = true;
+    public String configs = "";
     
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -89,13 +108,52 @@ public class MainActivity extends FragmentActivity {
 		mViewPager = (ViewPager) findViewById(R.id.pager);
 		mViewPager.setAdapter(mSectionsPagerAdapter);
         
+		//create config at first time
+		hasConfigFile = checkConfigfile();
+		
+		if(hasConfigFile){
+			configs = readConfigFile();
+		}else{
+			JSONObject config = new JSONObject();
+			try {
+				config.put("post_url", POST_URL);
+			} catch (JSONException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			writeConfigFile(config.toString().replace("\\", ""));
+			configs = readConfigFile();
+		}
+	
+		/**根据返回成功的信息，取出里面的字符串转换为json进行取值*/  
+		//获取一些配置
+		try {
+			JSONObject obj = new JSONObject(configs);
+			postUrl = obj.getString("post_url");
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 	}
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.
 		getMenuInflater().inflate(R.menu.main, menu);
+		menu.add(Menu.NONE, Menu.FIRST + 1, 5, "edit config");
 		return true;
+	}
+
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		// TODO Auto-generated method stub
+		switch (item.getItemId()) {
+        case Menu.FIRST + 1:
+        	showEditConfigDialog();
+            break;
+		}
+		return super.onOptionsItemSelected(item);
 	}
 
 	/**
@@ -210,7 +268,7 @@ public class MainActivity extends FragmentActivity {
 		return view;
 	}
 	
-	//声称一个设置页面
+	//生成一个设置页面
 	public View initSettingsListView(LayoutInflater inflater, ViewGroup container)
 	{
 		View view = inflater.inflate(R.layout.fragment_test_items_dummy, container, false);
@@ -424,7 +482,7 @@ public class MainActivity extends FragmentActivity {
 		}
 	}
 	
-	
+	//显示测试结果页面
 	public void showResultListView(View view, ArrayList<HashMap<String, Object>> arrayList)
 	{
 		ListView resultsLv = null;
@@ -446,6 +504,7 @@ public class MainActivity extends FragmentActivity {
 	
 	}
 	
+	//获取当前时间
 	public String getCurrentTime()
 	{
 		String time = "";
@@ -455,4 +514,96 @@ public class MainActivity extends FragmentActivity {
 		return time;
 	}
 	
+	//检查是否存在config文件
+	public boolean checkConfigfile()
+	{
+		try{
+			File f = new File(CONFIG_FILE_PATH);
+			if(!f.exists()){
+				return false;
+			}
+		}catch (Exception e) {
+			// TODO: handle exception
+			return false;
+		}
+//		showToast("true");
+		return true;
+		
+	}
+	
+	public void showToast(String msg)
+	{
+		Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
+	}
+	
+	//写入config文件
+	public void writeConfigFile(String conf)
+	{
+		String fileName = CONFIG_NAME;
+		String message = conf ;
+
+		try{ 
+			FileOutputStream fout = openFileOutput(fileName, MODE_PRIVATE);
+			byte [] bytes = message.getBytes(); 
+			fout.write(bytes); 
+			fout.close(); 
+			showToast("Saved!");
+		} 
+		catch(Exception e){ 
+			e.printStackTrace(); 
+		} 
+
+	}
+	
+	//读取config文件里的内容
+	public String readConfigFile()
+	{
+		String res=""; 
+        try{ 
+         FileInputStream fin = openFileInput(CONFIG_NAME); 
+         int length = fin.available(); 
+         byte [] buffer = new byte[length]; 
+         fin.read(buffer);     
+         res = EncodingUtils.getString(buffer, "UTF-8"); 
+         fin.close();     
+        } 
+        catch(Exception e){ 
+         e.printStackTrace(); 
+        } 
+        return res; 
+	}
+	
+	//获取当前的post url
+	public static String getPostUrl()
+	{
+		return postUrl;
+	}
+	
+	//打开一个弹出窗口，编辑config文件
+	public void showEditConfigDialog()
+	{
+		LayoutInflater inflater = getLayoutInflater();
+		View layout = inflater.inflate(R.layout.edit_config, (ViewGroup) findViewById(R.id.edit_config_dialog));
+		final EditText et1 = (EditText)layout.findViewById(R.id.edit_config_et);
+		et1.setText(readConfigFile());
+		new AlertDialog.Builder(this).setTitle("Edit config").setView(layout)
+		.setPositiveButton("save",new DialogInterface.OnClickListener() {
+			@Override
+			public void onClick(DialogInterface dialog, int which) {
+				// TODO Auto-generated method stub
+				writeConfigFile(et1.getText().toString());
+				/**根据返回成功的信息，取出里面的字符串转换为json进行取值*/  
+				try {
+					JSONObject obj = new JSONObject(et1.getText().toString());
+					postUrl = obj.getString("post_url").replace("\\", "");
+					System.out.print("dfdf");
+				} catch (JSONException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		})
+		.setNegativeButton("cancel", null)
+		.show();
+	}
 }

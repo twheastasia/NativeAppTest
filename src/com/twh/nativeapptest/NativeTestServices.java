@@ -51,7 +51,7 @@ public class NativeTestServices extends Service {
 	private static String MEMORY_TEXT = "memory: ";
 	private static String CPU_TEXT = "cpu: ";
 	//此处需要优化
-	private static String POST_URL = "http://192.168.199.180:3001/livedata";
+
 	private int statusBarHeight;// ×´Ì¬À¸¸ß¶È
 	private View view;// Í¸Ã÷´°Ìå
 	private TextView flow_text = null;
@@ -486,7 +486,8 @@ public class NativeTestServices extends Service {
 		params.add(new BasicNameValuePair("flow", currentFlow));
 		date = new Date();
 		params.add(new BasicNameValuePair("timestamp_local", date.getTime()+""));
-		RunThread thread1 = new RunThread("send url", POST_URL, params);
+		RunThread thread1 = new RunThread("send url", MainActivity.getPostUrl() , params);
+//		System.out.println("url: " + MainActivity.getPostUrl());
 		t1 = new Thread(thread1);
 		t1.start();
 	}
