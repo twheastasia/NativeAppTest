@@ -5,7 +5,20 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
 import java.util.List;
+
+import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
+import org.apache.http.ParseException;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.protocol.HTTP;
+import org.apache.http.util.EntityUtils;
 
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningAppProcessInfo;
@@ -39,6 +52,8 @@ public class NativeTestServices extends Service {
 	private static final int UPDATE_PIC = 0x100;
 	private static String MEMORY_TEXT = "memory: ";
 	private static String CPU_TEXT = "cpu: ";
+	//此处需要优化
+	private static String POST_URL = "http://192.168.199.180:3001/livedata";
 	private int statusBarHeight;// ×´Ì¬À¸¸ß¶È
 	private View view;// Í¸Ã÷´°Ìå
 	private TextView flow_text = null;
@@ -59,7 +74,12 @@ public class NativeTestServices extends Service {
 	private long currentTotalCpuTime = 0;
 	private long currentAppProcessCpuTime = 0;
 	private IntentFilter mIntentFilter;
-
+	
+	private String currentFlow;
+	private String currentCpu;
+	private String currentMemory;
+	private static Thread t1;
+	
 	@Override
 	public IBinder onBind(Intent arg0) {
 		// TODO Auto-generated method stub
@@ -255,21 +275,25 @@ public class NativeTestServices extends Service {
 		}else{
 			flow_text.setText(totalRxBytesPerSecond/1024/1024 + "M/S");
 		}
+		currentFlow = totalRxBytesPerSecond/1024 + "";//   kb per second
 	}
 	
 	
 	//refresh memory info
 	private void refreshMemoryInfo()
 	{
-		memory_text.setText(MEMORY_TEXT + getAppMemoryInfo());
-		
+		String m = getAppMemoryInfo();
+		memory_text.setText(MEMORY_TEXT + m +"KB");
+		currentMemory = m;
 	}
 	
 	
 	//refresh cpu info
     private void refreshCpuInfo()
     {
-    	cpu_text.setText(CPU_TEXT + getCurrentCpu());
+    	String c = getCurrentCpu();
+    	cpu_text.setText(CPU_TEXT + c + "%");
+    	currentCpu = c;
     }
 	
 	
@@ -300,6 +324,7 @@ public class NativeTestServices extends Service {
 				refreshFlow();
 				refreshMemoryInfo();
 				refreshCpuInfo();
+				postInfosToServer();
 				if (!viewHide)
 					refresh();
 			} else {
@@ -382,7 +407,7 @@ public class NativeTestServices extends Service {
 		System.out.println("currentAppProcessCpuTime: " + currentAppProcessCpuTime);
 		System.out.println("preAppProcessCpuTime: " +preAppProcessCpuTime);
 		System.out.println("preTotalCpuTime: " + preTotalCpuTime);
-		return percent + "%";
+		return percent + "";
 		
 	}
 	
@@ -441,7 +466,7 @@ public class NativeTestServices extends Service {
 	    int[] pids = new int[] {pid};
         Debug.MemoryInfo[] memoryInfo = mActivityManager.getProcessMemoryInfo(pids);
         int memorySize = memoryInfo[0].dalvikPrivateDirty;
-        return memorySize+"KB";
+        return memorySize+"";
 	}
 	
 	private long getAvalibleMemory()
@@ -454,6 +479,47 @@ public class NativeTestServices extends Service {
 			return MEM_UNUSED;
 	}
 	
+	private void postInfosToServer(){
+		List <NameValuePair> params = new ArrayList <NameValuePair>();
+		params.add(new BasicNameValuePair("cpu", currentCpu));
+		params.add(new BasicNameValuePair("memory", currentMemory));
+		params.add(new BasicNameValuePair("flow", currentFlow));
+		RunThread thread1 = new RunThread("send url", POST_URL, params);
+		t1 = new Thread(thread1);
+		t1.start();
+	}
+	
+	
+	private static void postRequestWithUrlAndParams(String url, List <NameValuePair> params)
+    {  
+		String strResult = "";
+        HttpPost httpRequest = new HttpPost(url);   //建立HTTP POST联机
+//        List <NameValuePair> params = new ArrayList <NameValuePair>();   //Post运作传送变量必须用NameValuePair[]数组储存 
+//        params.add(new BasicNameValuePair("str", "I am Post String"));   
+        try {
+			httpRequest.setEntity(new UrlEncodedFormEntity(params, HTTP.UTF_8));
+			HttpResponse httpResponse;
+			httpResponse = new DefaultHttpClient().execute(httpRequest);
+			if(httpResponse.getStatusLine().getStatusCode() == 200){
+				strResult = EntityUtils.toString(httpResponse.getEntity());
+			}else{
+				strResult = "error";
+			}
+		} catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClientProtocolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} 
+    }  
+    
 	
 	
 	
@@ -494,6 +560,22 @@ public class NativeTestServices extends Service {
 		}
 	}
 	
+	//线程里去跑发送请求、处理请求
+	public static class RunThread implements Runnable {
+		@SuppressWarnings("unused")
+		private String name;
+		private String url;
+		private List<NameValuePair> params;
+		public RunThread(String name, String url, List<NameValuePair> params) {
+			this.name = name;
+			this.url = url;
+			this.params = params;
+		} 
+
+		public void run() {
+			postRequestWithUrlAndParams(url, params);
+		} 
+	}
 	
 	
 }
