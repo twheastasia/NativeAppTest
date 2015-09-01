@@ -3,11 +3,11 @@ package com.twh.nativeapptest;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Date;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
@@ -21,7 +21,6 @@ import org.apache.http.protocol.HTTP;
 import org.apache.http.util.EntityUtils;
 
 import android.app.ActivityManager;
-import android.app.ActivityManager.RunningAppProcessInfo;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -32,7 +31,6 @@ import android.graphics.Rect;
 import android.net.TrafficStats;
 import android.os.BatteryManager;
 import android.os.Debug;
-import android.os.Debug.MemoryInfo;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
@@ -79,6 +77,8 @@ public class NativeTestServices extends Service {
 	private String currentCpu;
 	private String currentMemory;
 	private static Thread t1;
+	private Date date;
+	
 	
 	@Override
 	public IBinder onBind(Intent arg0) {
@@ -484,6 +484,8 @@ public class NativeTestServices extends Service {
 		params.add(new BasicNameValuePair("cpu", currentCpu));
 		params.add(new BasicNameValuePair("memory", currentMemory));
 		params.add(new BasicNameValuePair("flow", currentFlow));
+		date = new Date();
+		params.add(new BasicNameValuePair("timestamp_local", date.getTime()+""));
 		RunThread thread1 = new RunThread("send url", POST_URL, params);
 		t1 = new Thread(thread1);
 		t1.start();
