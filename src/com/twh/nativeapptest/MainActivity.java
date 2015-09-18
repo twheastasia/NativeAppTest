@@ -74,7 +74,7 @@ public class MainActivity extends FragmentActivity {
 	//app array
 	public String[] TEST_ITEMS = {"CPU", "内存", "流量", "电量"};
 	public String CONFIG_FILE_PATH = "/data/data/com.twh.nativeapptest/files/config.json";
-	public static String POST_URL = "http://192.168.199.180:3001/livedata";
+	public static String POST_URL = "http://192.168.199.180:3001/processor/collectdata";
 	public String CONFIG_NAME = "config.json";
 	public ArrayList<HashMap<String, Object>> appArray = null;
     public ArrayList<HashMap<String,Object>> testItemsArray = null;

@@ -35,6 +35,8 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
+import android.os.Build;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -72,7 +74,7 @@ public class NativeTestServices extends Service {
 	private long currentTotalCpuTime = 0;
 	private long currentAppProcessCpuTime = 0;
 	private IntentFilter mIntentFilter;
-	
+	private List<NameValuePair> device_info;
 	private String currentFlow;
 	private String currentCpu;
 	private String currentMemory;
@@ -93,6 +95,8 @@ public class NativeTestServices extends Service {
 		createFloatView();
 		mIntentFilter = new IntentFilter();
 		mIntentFilter.addAction(Intent.ACTION_BATTERY_CHANGED);
+		device_info = new ArrayList<NameValuePair>();
+		device_info = getDeviceInfo();
 	}
 
 	@Override
@@ -486,6 +490,13 @@ public class NativeTestServices extends Service {
 		params.add(new BasicNameValuePair("flow", currentFlow));
 		date = new Date();
 		params.add(new BasicNameValuePair("timestamp_local", date.getTime()+""));
+		/*for(int i=0; i<device_info.size(); i++){
+			params.add(new BasicNameValuePair(device_info.get(i).getName(), device_info.get(i).getValue()));
+		}*/
+		params.add(new BasicNameValuePair(device_info.get(0).getName(), device_info.get(0).getValue()));
+		params.add(new BasicNameValuePair(device_info.get(1).getName(), device_info.get(1).getValue()));
+		params.add(new BasicNameValuePair(device_info.get(2).getName(), device_info.get(2).getValue()));
+		params.add(new BasicNameValuePair(device_info.get(3).getName(), device_info.get(3).getValue()));
 		RunThread thread1 = new RunThread("send url", MainActivity.getPostUrl() , params);
 //		System.out.println("url: " + MainActivity.getPostUrl());
 		t1 = new Thread(thread1);
@@ -493,7 +504,7 @@ public class NativeTestServices extends Service {
 	}
 	
 	
-	private static void postRequestWithUrlAndParams(String url, List <NameValuePair> params)
+	private static void postRequestWithUrlAndParams(String url, List<NameValuePair> params)
     {  
 		String strResult = "";
         HttpPost httpRequest = new HttpPost(url);   //建立HTTP POST联机
@@ -520,10 +531,39 @@ public class NativeTestServices extends Service {
 		} catch (ParseException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} 
+		} finally{
+			//t1.stop();
+		}
     }  
     
-	
+	private List<NameValuePair> getDeviceInfo(){
+		List<NameValuePair> infos = new ArrayList<NameValuePair>();
+		Build bd = new Build();  
+		TelephonyManager tm = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+        /*StringBuilder sb = new StringBuilder();
+        sb.append("\nDeviceId(IMEI) = " + tm.getDeviceId());
+        sb.append("\nDeviceSoftwareVersion = " + tm.getDeviceSoftwareVersion());
+        sb.append("\nLine1Number = " + tm.getLine1Number());
+        sb.append("\nNetworkCountryIso = " + tm.getNetworkCountryIso());
+        sb.append("\nNetworkOperator = " + tm.getNetworkOperator());
+        sb.append("\nNetworkOperatorName = " + tm.getNetworkOperatorName());
+        sb.append("\nNetworkType = " + tm.getNetworkType());
+        sb.append("\nPhoneType = " + tm.getPhoneType());
+        sb.append("\nSimCountryIso = " + tm.getSimCountryIso());
+        sb.append("\nSimOperator = " + tm.getSimOperator());
+        sb.append("\nSimOperatorName = " + tm.getSimOperatorName());
+        sb.append("\nSimSerialNumber = " + tm.getSimSerialNumber());
+        sb.append("\nSimState = " + tm.getSimState());
+        sb.append("\nSubscriberId(IMSI) = " + tm.getSubscriberId());
+        sb.append("\nVoiceMailNumber = " + tm.getVoiceMailNumber());*/
+		infos.add(new BasicNameValuePair("device_model", bd.MODEL));
+		infos.add(new BasicNameValuePair("device_id", tm.getDeviceId()));
+		infos.add(new BasicNameValuePair("device_sdk_version", android.os.Build.VERSION.SDK));
+		infos.add(new BasicNameValuePair("device_system_version", android.os.Build.VERSION.RELEASE));
+		infos.add(new BasicNameValuePair("device_network_type", "" + tm.getNetworkType()));
+		infos.add(new BasicNameValuePair("device_phone_type", "" + tm.getPhoneType()));
+		return infos; 
+	}
 	
 	
 	/**
